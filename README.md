@@ -1,23 +1,13 @@
-
-
 ```markdown
 # IntelliInvoice Backend
 
-IntelliInvoice is a backend server for managing invoice generation and email communication. This repo provides the backend functionalities such as handling requests, parsing PDFs, and sending emails, built with Node.js, Express, and several other useful libraries.
-
-## Table of Contents
-
-- [Installation](#installation)
-- [Usage](#usage)
-- [Dependencies](#dependencies)
-- [Development](#development)
-- [License](#license)
+IntelliInvoice is a backend server for managing invoice generation and email communication. It is built using Node.js, Express, and several other libraries for functionality like email handling, PDF parsing, and OCR.
 
 ## Installation
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
+Ensure you have the following installed:
 
 - [Node.js](https://nodejs.org/)
 - [npm](https://www.npmjs.com/)
@@ -27,8 +17,8 @@ Before you begin, ensure you have the following installed:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/arjunshetty1/intelli-invoice-backend.git
-   cd intelli-invoice-backend
+   git clone https://github.com/arjunshetty1/IntelliInvoice.git
+   cd IntelliInvoice
    ```
 
 2. Install the dependencies:
@@ -39,7 +29,7 @@ Before you begin, ensure you have the following installed:
 
 3. Set up your environment variables:
 
-   Create a `.env` file in the root directory and add your environment variables (e.g., database URI, email credentials, etc.):
+   Create a `.env` file in the root directory and add the necessary environment variables (e.g., database URI, email credentials, etc.):
 
    ```
    MONGO_URI=your_mongo_database_uri
@@ -49,52 +39,33 @@ Before you begin, ensure you have the following installed:
    EMAIL_PASS=your_email_password
    ```
 
-   *Ensure you don't share this `.env` file in public repositories, and add it to `.gitignore` to keep it secure.*
+   *Make sure the `.env` file is added to `.gitignore`.*
 
 ## Usage
 
-To run the server in production mode, use:
+To run the server in production mode:
 
 ```bash
 npm start
 ```
 
-To run the server in development mode (with live reloading), use:
+To run the server in development mode (with live reloading):
 
 ```bash
 npm run dev
 ```
-
-### Available Endpoints
-
-- **POST /send-invoice** - Endpoint to send an invoice email.
-- **POST /parse-pdf** - Endpoint to parse an uploaded PDF and extract text.
-
-Please refer to the API documentation (if available) for detailed endpoint usage.
 
 ## Dependencies
 
-This project uses the following dependencies:
+- `express`: Web framework for Node.js
+- `mongoose`: MongoDB object modeling
+- `dotenv`: For loading environment variables
+- `nodemailer`: For sending emails
+- `node-imap`: For email inbox interactions
+- `pdf-parse`: For parsing PDFs
+- `tesseract.js`: For OCR (Optical Character Recognition)
+- `cors`: For enabling Cross-Origin Resource Sharing
 
-- `express` - Web framework for Node.js.
-- `mongoose` - MongoDB object modeling.
-- `dotenv` - For loading environment variables from `.env` files.
-- `nodemailer` - For sending emails.
-- `node-imap` - To interact with email inboxes.
-- `pdf-parse` - To parse and extract text from PDF files.
-- `tesseract.js` - For OCR (optical character recognition) in case the PDFs are scanned images.
-- `cors` - For enabling Cross-Origin Resource Sharing.
+### Development Dependencies
 
-### Development Dependencies:
-
-- `nodemon` - For automatically restarting the server during development.
-
-## Development
-
-To run the server in development mode, use:
-
-```bash
-npm run dev
-```
-
-This will run the server with `nodemon`, which automatically restarts the server whenever file changes are detected.
+- `nodemon`: For automatic server restarts during development.
