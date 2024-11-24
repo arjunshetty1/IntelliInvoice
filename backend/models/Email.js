@@ -32,3 +32,7 @@ const EmailSchema = new mongoose.Schema({
 
   attcahments: [AttachmentSchema],
 });
+
+const Email = mongoose.model("Email", EmailSchema);
+
+module.exports = { Email, EmailSchema };
