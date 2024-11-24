@@ -39,7 +39,6 @@ const createEmailParser = () => {
 
             fetch.on("message", (msg, seqno) => {
               msg.on("body", async (stream) => {
-                // Parse the email content using mailparser
                 const parsed = await simpleParser(stream);
 
                 // Check if the email has attachments
@@ -55,15 +54,15 @@ const createEmailParser = () => {
                     recipient: parsed.to.text,
                     date: parsed.date,
                     emailText: parsed.text,
-                    hasInvoice: false, // Can be determined based on attachment or content
+                    hasInvoice: false, 
                     attachments: parsed.attachments.map((attachment) => ({
                       filename: attachment.filename,
                       path: attachment.contentDisposition,
-                      isInvoice: false, // You can add logic to detect invoices
+                      isInvoice: false, 
                       invoiceDetails: {
-                        invoiceNumber: '', // Parse invoice number if needed
-                        invoiceDate: '', // Parse invoice date if needed
-                        amountDue: 0, // Parse amount if needed
+                        invoiceNumber: '', 
+                        invoiceDate: '', 
+                        amountDue: 0, 
                       }
                     })),
                   };
@@ -82,7 +81,7 @@ const createEmailParser = () => {
         });
       });
 
-      // Handle errors during connection
+  
       imap.once("error", (err) => {
         reject(err);
       });
