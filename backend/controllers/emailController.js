@@ -1,5 +1,5 @@
 const createEmailParser = require("../services/emailParser"); // Import the email service
-const { EmailSchema } = require("../models/Email"); // Import the Email model
+const { Email } = require("../models/Email"); // Import the Email model
 
 export const createEmailController = () => {
   const emailParser = createEmailParser();
