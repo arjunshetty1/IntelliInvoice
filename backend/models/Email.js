@@ -27,7 +27,7 @@ const EmailSchema = new mongoose.Schema({
   },
   hasInvoice: {
     type: Boolean,
-    required: true,
+    // required: true,
   },
 
   attcahments: [AttachmentSchema],

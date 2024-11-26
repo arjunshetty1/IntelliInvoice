@@ -8,26 +8,36 @@ const path = require("path");
 const createEmailParser = () => {
   const imap = new Imap(emailConfig);
 
-  // Function to fetch emails with attachments
   const fetchEmails = async () => {
     return new Promise((resolve, reject) => {
+      console.log('Attempting to connect to IMAP server...'); 
+  
       // Connect to the IMAP server
       imap.once("ready", () => {
+        console.log('IMAP server connection established'); 
+  
         // Open the inbox
         imap.openBox("INBOX", false, (err, box) => {
           if (err) {
+            console.error('Error opening inbox:', err); 
             reject(err);
             return;
           }
-
-          // Search for emails with attachments
+  
+          console.log(`Total messages in inbox: ${box.messages.total}`); 
+  
+       
           imap.search(["ALL", ["ATTACHMENT", true]], (err, results) => {
             if (err) {
+              console.error('Error searching for emails:', err); 
               reject(err);
               return;
             }
-
+  
+            console.log(`Emails with attachments found: ${results.length}`); 
+  
             if (results.length === 0) {
+              console.log('No emails with attachments found');
               resolve("No emails with attachments found");
               return;
             }

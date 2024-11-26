@@ -1,16 +1,22 @@
-const createEmailParser = require("../services/emailParser"); // Import the email service
-const { Email } = require("../models/Email"); // Import the Email model
+const createEmailParser = require("../services/emailParser"); 
+const { Email } = require("../models/Email"); 
 
-export const createEmailController = () => {
+const createEmailController = () => {
   const emailParser = createEmailParser();
 
   // Controller method to fetch new emails with attachments from the email server
   const fetchNewEmails = async (req, res) => {
     try {
-      const emails = await emailParser.fetchEmails(); // Fetch emails using the service
+      console.log('Attempting to fetch emails...'); 
+      const emails = await emailParser.fetchEmails(); 
+      console.log('Fetch emails result:', emails); 
       res.json({ success: true, count: emails.length, emails });
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Full error in fetchNewEmails:', error); 
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || 'Unknown error occurred' 
+      });
     }
   };
 
@@ -22,19 +28,18 @@ export const createEmailController = () => {
 
       // Query the database for emails with optional pagination and filtering
       const emails = await Email.find(query)
-        .sort({ date: -1 }) // Sort by date in descending order
-        .limit(limit * 1) // Limit the number of emails returned
-        .skip((page - 1) * limit) // Skip the appropriate number of emails based on the page
+        .sort({ date: -1 }) 
+        .limit(limit * 1) 
+        .skip((page - 1) * limit) 
         .exec();
 
       // Get the total count of emails for pagination
       const count = await Email.countDocuments(query);
 
-      // Respond with the paginated email list
       res.json({
         emails,
         totalPages: Math.ceil(count / limit),
-        currentPage: page,
+        currentPage: parseInt(page),
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -45,4 +50,8 @@ export const createEmailController = () => {
     fetchNewEmails,
     getEmails,
   };
+};
+
+module.exports = {
+  createEmailController,
 };

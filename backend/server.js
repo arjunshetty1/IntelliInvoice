@@ -2,9 +2,9 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/database");
-const emailRoute = require ("./routes/emailRoutes")
-import nodeCron from 'node-cron';
-const createEmailParser  = require('./services/emailParser')
+const emailRoute = require("./routes/emailRoutes");
+const nodeCron = require("node-cron"); // Use require instead of import
+const createEmailParser = require("./services/emailParser");
 
 const app = express();
 
@@ -26,7 +26,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on the port ${PORT}`);
 });
-
 
 // Schedule email fetching
 const emailParser = createEmailParser();
