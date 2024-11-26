@@ -14,10 +14,10 @@ const createEmailParser = () => {
       });
 
       const imap = new Imap({
-        ...emailConfig,
-        // Override with explicit connection parameters
-        host: 'imap.gmail.com',
-        port: 993,
+        host: emailConfig.host,
+        port: emailConfig.port,
+        user: emailConfig.user,
+        password: emailConfig.password,
         tls: true,
         tlsOptions: { 
           rejectUnauthorized: false 
@@ -61,73 +61,70 @@ const createEmailParser = () => {
 
           console.log(`Total messages in inbox: ${box.messages.total}`);
 
-          // Search for emails with attachments
-          imap.search(['ALL', ['ATTACHMENT', true]], (err, results) => {
-            if (err) {
-              console.error('Error searching for emails:', err);
-              imap.end();
-              reject(err);
-              return;
-            }
+          // Fetch all messages to process attachments
+          const fetch = imap.seq.fetch('1:*', {
+            bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)', 'TEXT'],
+            struct: true
+          });
 
-            console.log(`Emails with attachments found: ${results.length}`);
+          const processedEmails = [];
 
-            if (results.length === 0) {
-              console.log('No emails with attachments found');
-              imap.end();
-              resolve([]);
-              return;
-            }
+          fetch.on('message', (msg) => {
+            const emailData = {
+              subject: '',
+              sender: '',
+              recipient: '',
+              date: new Date(),
+              emailText: '',
+              hasInvoice: false,
+              attachments: []
+            };
 
-            const fetch = imap.fetch(results, {
-              bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)', 'TEXT'],
-              struct: true
-            });
+            msg.on('body', async (stream, info) => {
+              try {
+                const parsed = await simpleParser(stream);
 
-            const processedEmails = [];
+                emailData.subject = parsed.subject || 'No Subject';
+                emailData.sender = parsed.from?.text || 'Unknown Sender';
+                emailData.recipient = parsed.to?.text || 'Unknown Recipient';
+                emailData.date = parsed.date || new Date();
+                emailData.emailText = parsed.text || '';
 
-            fetch.on('message', (msg) => {
-              msg.on('body', async (stream) => {
-                try {
-                  const parsed = await simpleParser(stream);
+                // Check for attachments
+                if (parsed.attachments && parsed.attachments.length > 0) {
+                  emailData.attachments = parsed.attachments.map((attachment) => ({
+                    filename: attachment.filename || 'unnamed',
+                    path: attachment.contentDisposition || '',
+                    size: attachment.size || 0,
+                    mimeType: attachment.contentType || 'unknown'
+                  }));
 
-                  if (parsed.attachments && parsed.attachments.length > 0) {
-                    const emailData = {
-                      subject: parsed.subject || 'No Subject',
-                      sender: parsed.from?.text || 'Unknown Sender',
-                      recipient: parsed.to?.text || 'Unknown Recipient',
-                      date: parsed.date || new Date(),
-                      emailText: parsed.text || '',
-                      hasInvoice: false,
-                      attachments: parsed.attachments.map((attachment) => ({
-                        filename: attachment.filename || 'unnamed',
-                        path: attachment.contentDisposition || '',
-                        size: attachment.size || 0,
-                        mimeType: attachment.contentType || 'unknown'
-                      }))
-                    };
-
-                    const email = new Email(emailData);
-                    await email.save();
-                    processedEmails.push(emailData);
-                  }
-                } catch (parseError) {
-                  console.error('Email parsing error:', parseError);
+                  const email = new Email(emailData);
+                  await email.save();
+                  processedEmails.push(emailData);
                 }
-              });
+              } catch (parseError) {
+                console.error('Email parsing error:', parseError);
+              }
             });
 
-            fetch.once('error', (fetchErr) => {
-              console.error('Fetch error:', fetchErr);
-              imap.end();
-              reject(fetchErr);
+            msg.once('attributes', (attrs) => {
+              // Additional logging for debugging
+              console.log('Message attributes:', attrs);
             });
+          });
 
-            fetch.once('end', () => {
-              console.log('Finished fetching emails');
-              imap.end();
-              resolve(processedEmails);
-            });
+          fetch.once('error', (fetchErr) => {
+            console.error('Fetch error:', fetchErr);
+            imap.end();
+            reject(fetchErr);
+          });
+
+          fetch.once('end', () => {
+            console.log('Finished fetching emails');
+            console.log(`Processed emails with attachments: ${processedEmails.length}`);
+            imap.end();
+            resolve(processedEmails);
           });
         });
       });
