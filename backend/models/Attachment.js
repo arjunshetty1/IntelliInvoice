@@ -11,17 +11,23 @@ const AttachmentSchema = new mongoose.Schema({
   },
   ocrText: {
     type: String,
-    required: false,
   },
   isInvoice: {
     type: Boolean,
     default: false,
   },
-
   invoiceDetails: {
     invoiceNumber: String,
     invoiceDate: Date,
-    AmoutDue: Number,
+    amountDue: Number, 
+  },
+  size: {
+    type: Number,
+    required: true,
+  },
+  mimeType: {
+    type: String,
+    required: true,
   },
 });
 

@@ -6,13 +6,11 @@ const EmailSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-
   sender: {
     type: String,
     required: true,
     lowercase: true,
   },
-
   recipient: {
     type: String,
     required: true,
@@ -27,10 +25,9 @@ const EmailSchema = new mongoose.Schema({
   },
   hasInvoice: {
     type: Boolean,
-    // required: true,
+    default: false,
   },
-
-  attcahments: [AttachmentSchema],
+  attachments: [AttachmentSchema], // Corrected typo here
 });
 
 const Email = mongoose.model("Email", EmailSchema);
