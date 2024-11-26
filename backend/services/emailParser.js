@@ -2,108 +2,148 @@ const Imap = require("node-imap");
 const { simpleParser } = require("mailparser");
 const { emailConfig } = require("../config/email.js"); 
 const { Email } = require("../models/Email.js");
-const fs = require("fs").promises;
-const path = require("path");
 
 const createEmailParser = () => {
-  const imap = new Imap(emailConfig);
-
   const fetchEmails = async () => {
     return new Promise((resolve, reject) => {
-      console.log('Attempting to connect to IMAP server...'); 
-  
-      // Connect to the IMAP server
-      imap.once("ready", () => {
-        console.log('IMAP server connection established'); 
-  
-        // Open the inbox
-        imap.openBox("INBOX", false, (err, box) => {
+      console.log('Detailed IMAP Configuration:', {
+        host: emailConfig.host,
+        port: emailConfig.port,
+        user: emailConfig.user.replace(/./g, '*'), // Mask email
+        tlsOptions: emailConfig.tlsOptions
+      });
+
+      const imap = new Imap({
+        ...emailConfig,
+        // Override with explicit connection parameters
+        host: 'imap.gmail.com',
+        port: 993,
+        tls: true,
+        tlsOptions: { 
+          rejectUnauthorized: false 
+        }
+      });
+
+      // Increase max listeners to prevent warnings
+      imap.setMaxListeners(30);
+
+      // Comprehensive error logging
+      const logDetailedError = (err) => {
+        console.error('Detailed IMAP Connection Error:', {
+          message: err.message,
+          code: err.code,
+          errno: err.errno,
+          syscall: err.syscall,
+          address: err.address,
+          port: err.port
+        });
+      };
+
+      imap.once('error', (err) => {
+        logDetailedError(err);
+        reject(err);
+      });
+
+      imap.once('end', () => {
+        console.log('IMAP connection ended');
+      });
+
+      imap.once('ready', () => {
+        console.log('IMAP server connection established');
+
+        imap.openBox('INBOX', false, (err, box) => {
           if (err) {
-            console.error('Error opening inbox:', err); 
+            console.error('Error opening inbox:', err);
+            imap.end();
             reject(err);
             return;
           }
-  
-          console.log(`Total messages in inbox: ${box.messages.total}`); 
-  
-       
-          imap.search(["ALL", ["ATTACHMENT", true]], (err, results) => {
+
+          console.log(`Total messages in inbox: ${box.messages.total}`);
+
+          // Search for emails with attachments
+          imap.search(['ALL', ['ATTACHMENT', true]], (err, results) => {
             if (err) {
-              console.error('Error searching for emails:', err); 
+              console.error('Error searching for emails:', err);
+              imap.end();
               reject(err);
               return;
             }
-  
-            console.log(`Emails with attachments found: ${results.length}`); 
-  
+
+            console.log(`Emails with attachments found: ${results.length}`);
+
             if (results.length === 0) {
               console.log('No emails with attachments found');
-              resolve("No emails with attachments found");
+              imap.end();
+              resolve([]);
               return;
             }
 
             const fetch = imap.fetch(results, {
-              bodies: ["HEADER.FIELDS (FROM TO SUBJECT DATE)", "TEXT"],
-              struct: true,
+              bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)', 'TEXT'],
+              struct: true
             });
 
-            fetch.on("message", (msg, seqno) => {
-              msg.on("body", async (stream) => {
-                const parsed = await simpleParser(stream);
+            const processedEmails = [];
 
-                // Check if the email has attachments
-                if (parsed.attachments && parsed.attachments.length > 0) {
-                  console.log(
-                    `Email with subject: ${parsed.subject} has attachments`
-                  );
+            fetch.on('message', (msg) => {
+              msg.on('body', async (stream) => {
+                try {
+                  const parsed = await simpleParser(stream);
 
-                  // Save the email with attachments to the database
-                  const emailData = {
-                    subject: parsed.subject,
-                    sender: parsed.from.text,
-                    recipient: parsed.to.text,
-                    date: parsed.date,
-                    emailText: parsed.text,
-                    hasInvoice: false, 
-                    attachments: parsed.attachments.map((attachment) => ({
-                      filename: attachment.filename,
-                      path: attachment.contentDisposition,
-                      isInvoice: false, 
-                      invoiceDetails: {
-                        invoiceNumber: '', 
-                        invoiceDate: '', 
-                        amountDue: 0, 
-                      }
-                    })),
-                  };
-                  
-                  // Save email with attachments to the database
-                  const email = new Email(emailData);
-                  await email.save();
+                  if (parsed.attachments && parsed.attachments.length > 0) {
+                    const emailData = {
+                      subject: parsed.subject || 'No Subject',
+                      sender: parsed.from?.text || 'Unknown Sender',
+                      recipient: parsed.to?.text || 'Unknown Recipient',
+                      date: parsed.date || new Date(),
+                      emailText: parsed.text || '',
+                      hasInvoice: false,
+                      attachments: parsed.attachments.map((attachment) => ({
+                        filename: attachment.filename || 'unnamed',
+                        path: attachment.contentDisposition || '',
+                        size: attachment.size || 0,
+                        mimeType: attachment.contentType || 'unknown'
+                      }))
+                    };
+
+                    const email = new Email(emailData);
+                    await email.save();
+                    processedEmails.push(emailData);
+                  }
+                } catch (parseError) {
+                  console.error('Email parsing error:', parseError);
                 }
               });
             });
 
-            fetch.once("end", () => {
-              resolve("Finished fetching emails with attachments");
+            fetch.once('error', (fetchErr) => {
+              console.error('Fetch error:', fetchErr);
+              imap.end();
+              reject(fetchErr);
+            });
+
+            fetch.once('end', () => {
+              console.log('Finished fetching emails');
+              imap.end();
+              resolve(processedEmails);
             });
           });
         });
       });
 
-  
-      imap.once("error", (err) => {
-        reject(err);
-      });
-
-      // Open the IMAP connection
-      imap.connect();
+      // Detailed connection error handling
+      try {
+        imap.connect();
+      } catch (connectError) {
+        console.error('Initial connection error:', connectError);
+        logDetailedError(connectError);
+        reject(connectError);
+      }
     });
   };
 
-  return {
-    fetchEmails,
-  };
+  return { fetchEmails };
 };
 
 module.exports = createEmailParser;
